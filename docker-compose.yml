@@ -130,6 +130,28 @@ services:
     networks:
       - ai-stack
 
+  # ==========================================================================
+  # MANAGEMENT: Control Panel
+  # ==========================================================================
+  control-panel:
+    build:
+      context: ./control-panel
+      dockerfile: Dockerfile
+    image: amd-ai-control-panel:latest
+    container_name: ai-control-panel
+    restart: unless-stopped
+    ports:
+      - "${CONTROL_PANEL_PORT:-8090}:8090"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker-compose.yml:/app/docker-compose.yml:ro
+    environment:
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-amd-ai-server}
+    networks:
+      - ai-stack
+    labels:
+      - com.centurylinklabs.watchtower.enable=false
+
 networks:
   ai-stack:
     name: ${DOCKER_NETWORK:-ai-stack}

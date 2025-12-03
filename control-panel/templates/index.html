@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMD AI Server Control Panel</title>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #242424;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent-red: #ed1c24;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-blue: #3b82f6;
+            --border-color: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-red), #ff6b6b);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .logo span {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .gpu-status {
+            background: var(--bg-card);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .gpu-status .icon {
+            color: var(--accent-red);
+        }
+
+        .gpu-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gpu-name {
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .gpu-vram {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        .vram-bar {
+            width: 120px;
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .vram-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-yellow));
+            transition: width 0.3s ease;
+        }
+
+        .stacks {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .stack-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .stack-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .stack-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-blue);
+        }
+
+        .stack-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .services {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .service-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .service-row:hover {
+            background: #2a2a2a;
+        }
+
+        .service-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+        }
+
+        .status-dot.running {
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        .status-dot.stopped {
+            background: var(--text-secondary);
+        }
+
+        .status-dot.error {
+            background: var(--accent-red);
+        }
+
+        .service-name {
+            font-weight: 500;
+        }
+
+        .service-meta {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        .service-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #16a34a;
+        }
+
+        .btn-danger {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .empty-stack {
+            color: var(--text-secondary);
+            font-style: italic;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        /* Modal for logs */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 1rem;
+            overflow: auto;
+            flex: 1;
+        }
+
+        .log-output {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-secondary);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 1001;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            border-color: var(--accent-green);
+        }
+
+        .toast.error {
+            border-color: var(--accent-red);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Refresh indicator */
+        .refresh-indicator {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <i data-lucide="cpu" style="width: 24px; height: 24px; color: white;"></i>
+                </div>
+                <div>
+                    <h1>AMD AI Server</h1>
+                    <span>Control Panel</span>
+                </div>
+            </div>
+
+            <div class="gpu-status">
+                <i data-lucide="gpu" class="icon" style="width: 24px; height: 24px;"></i>
+                <div class="gpu-info">
+                    <span class="gpu-name" id="gpu-name">{{ gpu.name if gpu.available else 'GPU Not Detected' }}</span>
+                    <span class="gpu-vram" id="gpu-vram">
+                        {% if gpu.available %}
+                            {{ gpu.vram_used_gb }}GB / {{ gpu.vram_total_gb }}GB VRAM
+                        {% else %}
+                            --
+                        {% endif %}
+                    </span>
+                </div>
+                {% if gpu.available %}
+                <div class="vram-bar">
+                    <div class="vram-fill" id="vram-fill" style="width: {{ gpu.vram_percent }}%;"></div>
+                </div>
+                {% endif %}
+            </div>
+        </header>
+
+        <div class="stacks" id="stacks">
+            {% for stack_id, stack in stacks.items() %}
+            <div class="stack-card" data-stack="{{ stack_id }}">
+                <div class="stack-header">
+                    <div class="stack-icon">
+                        {% if stack.icon == 'brain' %}
+                        <i data-lucide="brain" style="width: 20px; height: 20px;"></i>
+                        {% elif stack.icon == 'mic' %}
+                        <i data-lucide="mic" style="width: 20px; height: 20px;"></i>
+                        {% elif stack.icon == 'image' %}
+                        <i data-lucide="image" style="width: 20px; height: 20px;"></i>
+                        {% elif stack.icon == 'volume-2' %}
+                        <i data-lucide="volume-2" style="width: 20px; height: 20px;"></i>
+                        {% endif %}
+                    </div>
+                    <span class="stack-title">{{ stack.name }}</span>
+                </div>
+
+                <div class="services">
+                    {% if stack.services %}
+                        {% for service_id, service in stack.services.items() %}
+                        <div class="service-row" data-service="{{ service_id }}">
+                            <div class="service-info">
+                                <div class="status-dot {% if service.running %}running{% else %}stopped{% endif %}"></div>
+                                <div>
+                                    <div class="service-name">{{ service.display }}</div>
+                                    <div class="service-meta">
+                                        Port {{ service.port }} |
+                                        {% if service.running %}
+                                            Running
+                                        {% else %}
+                                            Stopped
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="service-actions">
+                                {% if service.running %}
+                                <button class="btn btn-danger" onclick="stopService('{{ service_id }}')">
+                                    <i data-lucide="square" style="width: 14px; height: 14px;"></i>
+                                    Stop
+                                </button>
+                                <button class="btn btn-secondary" onclick="restartService('{{ service_id }}')">
+                                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                                </button>
+                                {% else %}
+                                <button class="btn btn-primary" onclick="startService('{{ service_id }}')">
+                                    <i data-lucide="play" style="width: 14px; height: 14px;"></i>
+                                    Start
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-secondary btn-icon" onclick="showLogs('{{ service_id }}', '{{ service.display }}')">
+                                    <i data-lucide="file-text" style="width: 14px; height: 14px;"></i>
+                                </button>
+                                {% if service.running and service.url %}
+                                <a href="{{ service.url }}" target="_blank" class="btn btn-secondary btn-icon">
+                                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-stack">No services configured yet</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Logs Modal -->
+    <div class="modal" id="logsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title" id="logsTitle">Logs</span>
+                <button class="close-btn" onclick="closeLogs()">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <pre class="log-output" id="logOutput">Loading...</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // API helpers
+        async function apiCall(url, method = 'GET', body = null) {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+            };
+            if (body) options.body = JSON.stringify(body);
+
+            const response = await fetch(url, options);
+            return response.json();
+        }
+
+        // Toast notifications
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" style="width: 18px; height: 18px;"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Service actions
+        async function startService(serviceName) {
+            showToast(`Starting ${serviceName}...`, 'success');
+            const result = await apiCall(`/api/service/${serviceName}`, 'POST', { action: 'start' });
+            if (result.success) {
+                showToast(`${serviceName} started successfully`, 'success');
+            } else {
+                showToast(`Failed to start ${serviceName}`, 'error');
+            }
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        async function stopService(serviceName) {
+            showToast(`Stopping ${serviceName}...`, 'success');
+            const result = await apiCall(`/api/service/${serviceName}`, 'POST', { action: 'stop' });
+            if (result.success) {
+                showToast(`${serviceName} stopped`, 'success');
+            } else {
+                showToast(`Failed to stop ${serviceName}`, 'error');
+            }
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        async function restartService(serviceName) {
+            showToast(`Restarting ${serviceName}...`, 'success');
+            const result = await apiCall(`/api/service/${serviceName}`, 'POST', { action: 'restart' });
+            if (result.success) {
+                showToast(`${serviceName} restarted`, 'success');
+            } else {
+                showToast(`Failed to restart ${serviceName}`, 'error');
+            }
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        // Logs modal
+        async function showLogs(serviceName, displayName) {
+            document.getElementById('logsModal').classList.add('active');
+            document.getElementById('logsTitle').textContent = `${displayName} Logs`;
+            document.getElementById('logOutput').textContent = 'Loading...';
+
+            try {
+                const result = await apiCall(`/api/logs/${serviceName}?lines=200`);
+                document.getElementById('logOutput').textContent = result.logs || 'No logs available';
+            } catch (e) {
+                document.getElementById('logOutput').textContent = 'Failed to load logs: ' + e.message;
+            }
+        }
+
+        function closeLogs() {
+            document.getElementById('logsModal').classList.remove('active');
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLogs();
+        });
+
+        // Auto-refresh status every 30 seconds
+        setInterval(async () => {
+            try {
+                const status = await apiCall('/api/status');
+                // Update GPU info
+                if (status.gpu && status.gpu.available) {
+                    document.getElementById('gpu-vram').textContent =
+                        `${status.gpu.vram_used_gb}GB / ${status.gpu.vram_total_gb}GB VRAM`;
+                    document.getElementById('vram-fill').style.width = `${status.gpu.vram_percent}%`;
+                }
+                // Could update service status without full reload here
+            } catch (e) {
+                console.error('Status refresh failed:', e);
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

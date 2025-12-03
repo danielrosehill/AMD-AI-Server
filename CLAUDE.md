@@ -81,6 +81,51 @@ Services are exposed via:
   PYTORCH_ROCM_ARCH=gfx1101
   ```
 
+## Control Panel
+
+A bespoke web UI for managing this stack is available on port 8090.
+
+- **Start/Stop/Restart** individual services
+- **View logs** per service
+- **GPU monitoring** (VRAM usage)
+- **Direct links** to service web UIs
+
+Run standalone: `cd control-panel && python app.py`
+Or via Docker Compose (included in main compose file)
+
+## Future Expansion Ideas
+
+### TTS Models to Investigate
+
+These models show promise for ROCm compatibility:
+
+- **Microsoft Vibe Voice**: High-quality neural TTS
+- **Dia (D-I-A)**: Hugging Face model worth testing
+- **Kokoro**: Already tested, builds but needs ROCm optimization
+- **Fish Speech**: Multilingual TTS option
+
+### ASR/STT Alternatives
+
+- **WhisperX**: Word-level timestamps, speaker diarization
+- **Faster-Whisper**: CTranslate2 backend (may need CUDA->ROCm work)
+- **Whisper.cpp**: CPU fallback or ROCm via hipBLAS
+- **Fine-tuned Whisper**: Custom models for specific accents/domains
+
+### Other Potential Additions
+
+- **Open WebUI**: Chat interface for Ollama (pairs well with LLM stack)
+- **SillyTavern**: Alternative chat UI with character support
+- **Automatic1111**: Alternative to ComfyUI for image generation
+- **RVC**: Real-time voice conversion
+- **Tortoise-TTS**: Slower but very high quality voice cloning
+
+### MCP Server Integration
+
+Services could expose MCP (Model Context Protocol) servers for Claude integration:
+- Whisper MCP for voice-to-text in conversations
+- TTS MCP for Claude to speak responses
+- Image generation MCP for inline image creation
+
 ## Notes for Other Users
 
 Paths in these configurations are specific to the author's filesystem. You will need to modify:
