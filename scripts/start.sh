@@ -1,17 +1,18 @@
 #!/bin/bash
 # AMD AI Server Stack - Start Services
-# Usage: ./start.sh [service|all]
+# Usage: ./start.sh [service|all|build]
 # Examples:
-#   ./start.sh           # Start core services (ollama, open-webui, comfyui)
-#   ./start.sh all       # Start all services including dev
-#   ./start.sh ollama    # Start only Ollama stack
+#   ./start.sh           # Start all services
+#   ./start.sh build     # Build and start all services
+#   ./start.sh ollama    # Start only Ollama
 #   ./start.sh whisper   # Start Whisper STT
-#   ./start.sh tts       # Start TTS service
+#   ./start.sh chatterbox # Start Chatterbox TTS
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
+COMPOSE_FILE="$REPO_DIR/docker-compose.yml"
 
 # Load environment
 if [[ -f "$REPO_DIR/.env" ]]; then
@@ -22,6 +23,7 @@ fi
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 print_status() {
@@ -34,6 +36,10 @@ print_warning() {
 
 print_error() {
     echo -e "${RED}Error:${NC} $1"
+}
+
+print_info() {
+    echo -e "${BLUE}Info:${NC} $1"
 }
 
 # Check prerequisites
@@ -63,118 +69,99 @@ ensure_network() {
     fi
 }
 
-start_ollama() {
-    print_status "Starting Ollama + Open WebUI..."
-    cd "$REPO_DIR/stacks/ollama"
-    docker compose up -d
-    echo ""
-    echo "Access points:"
-    echo "  Ollama API:  http://localhost:${OLLAMA_PORT:-11434}"
-    echo "  Open WebUI:  http://localhost:${OPENWEBUI_PORT:-3000}"
-}
-
-start_whisper() {
-    print_status "Starting Whisper STT..."
-    cd "$REPO_DIR/stacks/whisper"
-    docker compose up -d --build
-    echo ""
-    echo "Access points:"
-    echo "  Whisper API: http://localhost:${WHISPER_PORT:-9000}"
-}
-
-start_comfyui() {
-    print_status "Starting ComfyUI..."
-    cd "$REPO_DIR/stacks/comfyui"
-    docker compose up -d
-    echo ""
-    echo "Access points:"
-    echo "  ComfyUI:     http://localhost:${COMFYUI_PORT:-8188}"
-}
-
-start_tts() {
-    print_status "Starting TTS service..."
-    cd "$REPO_DIR/stacks/tts"
-    docker compose up -d
-    echo ""
-    echo "Access points:"
-    echo "  TTS API:     http://localhost:${TTS_PORT:-8880}"
-}
-
-start_pytorch() {
-    print_status "Starting PyTorch ROCm environment..."
-    cd "$REPO_DIR/stacks/pytorch"
-    docker compose up -d
-    echo ""
-    echo "PyTorch container started. Access with:"
-    echo "  docker exec -it pytorch-rocm bash"
-}
-
-start_core() {
-    print_status "Starting core services..."
+# Build all images that need building
+build_images() {
+    print_status "Building images (this may take a while on first run)..."
     cd "$REPO_DIR"
-    docker compose up -d ollama open-webui comfyui
-    echo ""
-    echo "Core services started:"
-    echo "  Ollama API:  http://localhost:${OLLAMA_PORT:-11434}"
-    echo "  Open WebUI:  http://localhost:${OPENWEBUI_PORT:-3000}"
-    echo "  ComfyUI:     http://localhost:${COMFYUI_PORT:-8188}"
+    docker compose -f "$COMPOSE_FILE" build
 }
 
+# Start specific service
+start_service() {
+    local service="$1"
+    print_status "Starting $service..."
+    cd "$REPO_DIR"
+    docker compose -f "$COMPOSE_FILE" up -d "$service"
+}
+
+# Start all main services (excludes dev profile)
 start_all() {
-    print_status "Starting ALL services..."
-    ensure_network
-    start_ollama
+    print_status "Starting all services..."
+    cd "$REPO_DIR"
+    docker compose -f "$COMPOSE_FILE" up -d
+}
+
+# Build and start
+build_and_start() {
+    build_images
+    start_all
+}
+
+# Print service URLs
+print_urls() {
     echo ""
-    start_whisper
+    echo -e "${GREEN}Service URLs:${NC}"
+    echo "  Ollama API:      http://localhost:${OLLAMA_PORT:-11434}"
+    echo "  Whisper STT:     http://localhost:${WHISPER_PORT:-9000}"
+    echo "  Chatterbox TTS:  http://localhost:${TTS_PORT:-8880}"
+    echo "  ComfyUI:         http://localhost:${COMFYUI_PORT:-8188}"
+    echo "  Control Panel:   http://localhost:${CONTROL_PANEL_PORT:-8090}"
     echo ""
-    start_comfyui
-    echo ""
-    start_tts
-    echo ""
-    print_status "All services started!"
 }
 
 # Main
 check_prerequisites
+ensure_network
 
-case "${1:-core}" in
-    all)
+case "${1:-all}" in
+    build)
+        build_and_start
+        print_urls
+        ;;
+    all|"")
         start_all
+        print_urls
         ;;
     ollama)
-        ensure_network
-        start_ollama
+        start_service ollama
+        echo "  Ollama API: http://localhost:${OLLAMA_PORT:-11434}"
         ;;
     whisper|stt)
-        ensure_network
-        start_whisper
+        start_service whisper
+        echo "  Whisper STT: http://localhost:${WHISPER_PORT:-9000}"
         ;;
-    comfyui)
-        ensure_network
-        start_comfyui
+    chatterbox|tts)
+        start_service chatterbox
+        echo "  Chatterbox TTS: http://localhost:${TTS_PORT:-8880}"
         ;;
-    tts)
-        ensure_network
-        start_tts
+    comfyui|image)
+        start_service comfyui
+        echo "  ComfyUI: http://localhost:${COMFYUI_PORT:-8188}"
+        ;;
+    control-panel|panel)
+        start_service control-panel
+        echo "  Control Panel: http://localhost:${CONTROL_PANEL_PORT:-8090}"
         ;;
     pytorch|dev)
-        ensure_network
-        start_pytorch
-        ;;
-    core|"")
-        start_core
+        print_status "Starting PyTorch ROCm environment (dev profile)..."
+        cd "$REPO_DIR"
+        docker compose -f "$COMPOSE_FILE" --profile dev up -d pytorch-rocm
+        echo "  Access with: docker exec -it pytorch-rocm bash"
         ;;
     *)
-        echo "Usage: $0 [service]"
+        echo "AMD AI Server Stack - Start Script"
         echo ""
-        echo "Services:"
-        echo "  core     - Ollama, Open WebUI, ComfyUI (default)"
-        echo "  all      - All services"
-        echo "  ollama   - Ollama + Open WebUI"
-        echo "  whisper  - Whisper STT"
-        echo "  comfyui  - ComfyUI image generation"
-        echo "  tts      - Text-to-speech"
-        echo "  pytorch  - PyTorch ROCm dev environment"
+        echo "Usage: $0 [command]"
+        echo ""
+        echo "Commands:"
+        echo "  (none), all  - Start all services"
+        echo "  build        - Build images and start all services"
+        echo "  ollama       - Start Ollama LLM server"
+        echo "  whisper      - Start Whisper STT"
+        echo "  chatterbox   - Start Chatterbox TTS"
+        echo "  comfyui      - Start ComfyUI image generation"
+        echo "  control-panel- Start the control panel only"
+        echo "  pytorch      - Start PyTorch dev environment"
         exit 1
         ;;
 esac

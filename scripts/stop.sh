@@ -6,6 +6,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
+COMPOSE_FILE="$REPO_DIR/docker-compose.yml"
 
 # Colors
 RED='\033[0;31m'
@@ -16,83 +17,55 @@ print_status() {
     echo -e "${GREEN}==>${NC} $1"
 }
 
-stop_ollama() {
-    print_status "Stopping Ollama + Open WebUI..."
-    cd "$REPO_DIR/stacks/ollama"
-    docker compose down
-}
-
-stop_whisper() {
-    print_status "Stopping Whisper STT..."
-    cd "$REPO_DIR/stacks/whisper"
-    docker compose down
-}
-
-stop_comfyui() {
-    print_status "Stopping ComfyUI..."
-    cd "$REPO_DIR/stacks/comfyui"
-    docker compose down
-}
-
-stop_tts() {
-    print_status "Stopping TTS service..."
-    cd "$REPO_DIR/stacks/tts"
-    docker compose down
-}
-
-stop_pytorch() {
-    print_status "Stopping PyTorch environment..."
-    cd "$REPO_DIR/stacks/pytorch"
-    docker compose down
+stop_service() {
+    local service="$1"
+    print_status "Stopping $service..."
+    cd "$REPO_DIR"
+    docker compose -f "$COMPOSE_FILE" stop "$service"
 }
 
 stop_all() {
     print_status "Stopping ALL services..."
-
-    # Stop from main compose file
     cd "$REPO_DIR"
-    docker compose down 2>/dev/null || true
-
-    # Stop individual stacks
-    for stack in ollama whisper comfyui tts pytorch; do
-        if [[ -f "$REPO_DIR/stacks/$stack/docker-compose.yml" ]]; then
-            cd "$REPO_DIR/stacks/$stack"
-            docker compose down 2>/dev/null || true
-        fi
-    done
-
+    docker compose -f "$COMPOSE_FILE" down
     print_status "All services stopped"
 }
 
 case "${1:-all}" in
-    all)
+    all|"")
         stop_all
         ;;
     ollama)
-        stop_ollama
+        stop_service ollama
         ;;
     whisper|stt)
-        stop_whisper
+        stop_service whisper
         ;;
-    comfyui)
-        stop_comfyui
+    chatterbox|tts)
+        stop_service chatterbox
         ;;
-    tts)
-        stop_tts
+    comfyui|image)
+        stop_service comfyui
+        ;;
+    control-panel|panel)
+        stop_service control-panel
         ;;
     pytorch|dev)
-        stop_pytorch
+        stop_service pytorch-rocm
         ;;
     *)
+        echo "AMD AI Server Stack - Stop Script"
+        echo ""
         echo "Usage: $0 [service]"
         echo ""
         echo "Services:"
-        echo "  all      - Stop all services (default)"
-        echo "  ollama   - Ollama + Open WebUI"
-        echo "  whisper  - Whisper STT"
-        echo "  comfyui  - ComfyUI"
-        echo "  tts      - Text-to-speech"
-        echo "  pytorch  - PyTorch environment"
+        echo "  all         - Stop all services (default)"
+        echo "  ollama      - Ollama LLM server"
+        echo "  whisper     - Whisper STT"
+        echo "  chatterbox  - Chatterbox TTS"
+        echo "  comfyui     - ComfyUI image generation"
+        echo "  control-panel - Control panel"
+        echo "  pytorch     - PyTorch environment"
         exit 1
         ;;
 esac

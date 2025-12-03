@@ -65,7 +65,62 @@ STACK_CONFIG = {
     "tts": {
         "name": "Text-to-Speech",
         "icon": "volume-2",
-        "services": {},  # To be populated when TTS is added
+        "services": {
+            "chatterbox": {
+                "container": "chatterbox-tts",
+                "display": "Chatterbox",
+                "port": 8880,
+                "url": "http://localhost:8880",
+                "api_docs": "http://localhost:8880/docs",
+            }
+        },
+    },
+}
+
+# Service API documentation - centralized reference for all services
+SERVICE_APIS = {
+    "ollama": {
+        "name": "Ollama",
+        "base_url": "http://localhost:11434",
+        "docs_url": None,
+        "endpoints": [
+            {"method": "POST", "path": "/api/generate", "description": "Generate text completion"},
+            {"method": "POST", "path": "/api/chat", "description": "Chat completion"},
+            {"method": "GET", "path": "/api/tags", "description": "List available models"},
+            {"method": "POST", "path": "/api/pull", "description": "Pull a model"},
+        ],
+    },
+    "whisper": {
+        "name": "Whisper STT",
+        "base_url": "http://localhost:9000",
+        "docs_url": "http://localhost:9000/docs",
+        "endpoints": [
+            {"method": "POST", "path": "/transcribe", "description": "Transcribe audio file"},
+            {"method": "POST", "path": "/transcribe/finetune", "description": "Transcribe with fine-tuned model"},
+            {"method": "GET", "path": "/health", "description": "Health check"},
+        ],
+    },
+    "chatterbox": {
+        "name": "Chatterbox TTS",
+        "base_url": "http://localhost:8880",
+        "docs_url": "http://localhost:8880/docs",
+        "endpoints": [
+            {"method": "POST", "path": "/v1/audio/speech", "description": "OpenAI-compatible TTS"},
+            {"method": "POST", "path": "/tts", "description": "Generate speech from text"},
+            {"method": "GET", "path": "/get_predefined_voices", "description": "List predefined voices"},
+            {"method": "GET", "path": "/get_reference_files", "description": "List reference audio files"},
+            {"method": "POST", "path": "/upload_reference", "description": "Upload reference audio for cloning"},
+        ],
+    },
+    "comfyui": {
+        "name": "ComfyUI",
+        "base_url": "http://localhost:8188",
+        "docs_url": None,
+        "endpoints": [
+            {"method": "POST", "path": "/prompt", "description": "Queue workflow prompt"},
+            {"method": "GET", "path": "/history", "description": "Get generation history"},
+            {"method": "GET", "path": "/view", "description": "View generated image"},
+        ],
     },
 }
 
@@ -339,6 +394,49 @@ async def api_mcp():
             "mcpm_command": mcpm_command,
         },
     }
+
+
+@app.get("/api/services")
+async def api_services_info():
+    """Get detailed API information for all services."""
+    return SERVICE_APIS
+
+
+@app.get("/about", response_class=HTMLResponse)
+async def about_page(request: Request):
+    """Render the About/Integration page."""
+    import json
+
+    # Generate MCP config snippets
+    claude_desktop_config = {
+        "mcpServers": {
+            MCP_CONFIG["name"]: {
+                "command": MCP_CONFIG["command"],
+                "args": MCP_CONFIG["args"],
+                "env": MCP_CONFIG["env"],
+            }
+        }
+    }
+
+    mcpm_command = (
+        f"mcpm new {MCP_CONFIG['name']} "
+        f"--type stdio "
+        f"--command \"{MCP_CONFIG['command']}\" "
+        f"--args \"{' '.join(MCP_CONFIG['args'])}\" "
+        f"--env \"{','.join(f'{k}={v}' for k, v in MCP_CONFIG['env'].items())}\" "
+        f"--force"
+    )
+
+    return templates.TemplateResponse(
+        "about.html",
+        {
+            "request": request,
+            "services": SERVICE_APIS,
+            "mcp_config": MCP_CONFIG,
+            "claude_desktop_json": json.dumps(claude_desktop_config, indent=2),
+            "mcpm_command": mcpm_command,
+        },
+    )
 
 
 if __name__ == "__main__":

@@ -1,6 +1,14 @@
 #!/bin/bash
 # AMD AI Server Stack - Service Status
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Load environment for port numbers
+if [[ -f "$REPO_DIR/.env" ]]; then
+    export $(grep -v '^#' "$REPO_DIR/.env" | xargs)
+fi
+
 # Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -15,12 +23,12 @@ echo ""
 
 # Check each known container
 containers=(
-    "ollama-rocm:Ollama:11434"
-    "open-webui:Open WebUI:3000"
-    "comfyui:ComfyUI:8188"
-    "whisper-rocm:Whisper STT:9000"
-    "kokoro-tts:Kokoro TTS:8880"
-    "pytorch-rocm:PyTorch:-"
+    "ollama-rocm:Ollama:${OLLAMA_PORT:-11434}"
+    "whisper-rocm:Whisper STT:${WHISPER_PORT:-9000}"
+    "chatterbox-tts:Chatterbox TTS:${TTS_PORT:-8880}"
+    "comfyui:ComfyUI:${COMFYUI_PORT:-8188}"
+    "ai-control-panel:Control Panel:${CONTROL_PANEL_PORT:-8090}"
+    "pytorch-rocm:PyTorch (dev):-"
 )
 
 printf "%-20s %-12s %-10s\n" "SERVICE" "STATUS" "PORT"
@@ -60,9 +68,9 @@ else
 fi
 
 echo ""
-echo -e "${BLUE}Access URLs:${NC}"
-echo "  Ollama API:  http://localhost:11434"
-echo "  Open WebUI:  http://localhost:3000"
-echo "  ComfyUI:     http://localhost:8188"
-echo "  Whisper:     http://localhost:9000"
-echo "  TTS:         http://localhost:8880"
+echo -e "${BLUE}Service URLs:${NC}"
+echo "  Ollama API:      http://localhost:${OLLAMA_PORT:-11434}"
+echo "  Whisper STT:     http://localhost:${WHISPER_PORT:-9000}"
+echo "  Chatterbox TTS:  http://localhost:${TTS_PORT:-8880}"
+echo "  ComfyUI:         http://localhost:${COMFYUI_PORT:-8188}"
+echo "  Control Panel:   http://localhost:${CONTROL_PANEL_PORT:-8090}"
