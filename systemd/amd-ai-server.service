@@ -1,0 +1,20 @@
+[Unit]
+Description=AMD AI Server Stack
+Documentation=https://github.com/danielrosehill/AMD-AI-Server
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/daniel/repos/github/AMD-AI-Server
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose down
+ExecReload=/usr/bin/docker compose restart
+TimeoutStartSec=300
+
+# Ensure proper environment
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,7 @@
 # AMD AI Server Stack
 
+![alt text](screenshots/1.png)
+
 Docker Compose configurations for running AI workloads on AMD GPUs with ROCm.
 
 ## Overview
@@ -90,7 +92,24 @@ nano .env
 ./scripts/start.sh comfyui
 ```
 
-### 3. Verify GPU Access
+### 3. Install System Integration (Optional)
+
+Install the systemd service for autostart and desktop menu entry:
+
+```bash
+./scripts/install.sh
+```
+
+This will:
+- Install a systemd service that starts the stack on boot
+- Add "AMD AI Server" to your application menu (opens control panel)
+
+To remove:
+```bash
+./scripts/uninstall.sh
+```
+
+### 4. Verify GPU Access
 
 ```bash
 ./scripts/check-gpu.sh
@@ -123,7 +142,13 @@ AMD-AI-Server/
 │   ├── start.sh                 # Start services
 │   ├── stop.sh                  # Stop services
 │   ├── check-gpu.sh             # Verify GPU access
-│   └── status.sh                # Show service status
+│   ├── status.sh                # Show service status
+│   ├── install.sh               # Install systemd service & desktop entry
+│   └── uninstall.sh             # Remove system integration
+├── systemd/
+│   └── amd-ai-server.service    # Systemd service file
+├── desktop/
+│   └── amd-ai-server.desktop    # Desktop menu entry
 └── docs/
     ├── CUSTOMIZATION.md         # Adapting for your system
     └── TROUBLESHOOTING.md       # Common issues
