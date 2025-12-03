@@ -1,53 +1,40 @@
-# Text-to-Speech Service
-# Natural-sounding TTS for podcast generation and general use
+# Text-to-Speech Service - Standalone Stack
+# For integrated deployment, use the main docker-compose.yml instead
+#
+# Primary TTS: Chatterbox (see ../chatterbox/)
+# This file is kept for reference/alternative TTS options
 
 services:
-  # Kokoro TTS - High quality, fast inference
-  kokoro-tts:
-    image: kokoro-api-rocm:latest
-    container_name: kokoro-tts
+  # ==========================================================================
+  # Alternative: Fish Speech (for multilingual/voice cloning)
+  # Note: CC-BY-NC-SA license on model weights (non-commercial)
+  # Uncomment to use instead of Chatterbox
+  # ==========================================================================
+  fish-speech:
+    build:
+      context: https://github.com/moyutegong/fish-speech-rocm.git
+      dockerfile: dockerfile
+    container_name: fish-speech
     restart: unless-stopped
     ports:
-      - "${TTS_PORT:-8880}:8880"
+      - "${FISH_SPEECH_PORT:-8881}:8080"
     environment:
       - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
-      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
-      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
     volumes:
       - ${TTS_MODELS:-./models}:/app/models
-      - ./output:/app/output
     devices:
       - /dev/kfd
       - /dev/dri
     group_add:
-      - video
-      - render
+      - "44"   # video
+      - "992"  # render
     security_opt:
       - seccomp:unconfined
     ipc: host
     networks:
       - ai-stack
-
-  # Alternative: Fish Speech (for voice cloning)
-  # Uncomment if needed
-  # fish-speech:
-  #   image: fishaudio/fish-speech:latest
-  #   container_name: fish-speech
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8881:8080"
-  #   environment:
-  #     - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
-  #   volumes:
-  #     - ${TTS_MODELS:-./models}:/app/models
-  #   devices:
-  #     - /dev/kfd
-  #     - /dev/dri
-  #   group_add:
-  #     - video
-  #     - render
-  #   networks:
-  #     - ai-stack
+    profiles:
+      - fish  # Only start with: docker compose --profile fish up
 
 networks:
   ai-stack:

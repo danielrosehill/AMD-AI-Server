@@ -63,14 +63,37 @@ Docker solves this by:
 | Service | Port | Description |
 |---------|------|-------------|
 | ComfyUI | 8188 | Image generation and manipulation |
-| Kokoro TTS | 8880 | Natural-sounding text-to-speech |
+| Chatterbox TTS | 8880 | Natural-sounding text-to-speech with voice cloning |
 
 ## Quick Start
 
-### 1. Clone and Configure
+### Option A: Use Pre-built Images (Recommended)
+
+The fastest way to get started - no building required:
 
 ```bash
-git clone https://github.com/danielrosehill/AMD-AI-Server.git
+git clone --recurse-submodules https://github.com/danielrosehill/AMD-AI-Server.git
+cd AMD-AI-Server
+
+# Copy example environment file and edit paths
+cp .env.example .env
+nano .env
+
+# Pull and start all services
+docker compose -f docker-compose.hub.yml up -d
+```
+
+**Pre-built images on Docker Hub:**
+- `danielrosehill/amd-ai-whisper:latest` - Whisper STT with ROCm
+- `danielrosehill/amd-ai-chatterbox:latest` - Chatterbox TTS with ROCm
+- `danielrosehill/amd-ai-control-panel:latest` - Web control panel
+
+### Option B: Build Locally
+
+If you want to customize or build from source:
+
+```bash
+git clone --recurse-submodules https://github.com/danielrosehill/AMD-AI-Server.git
 cd AMD-AI-Server
 
 # Copy example environment file
@@ -78,6 +101,9 @@ cp .env.example .env
 
 # Edit paths for your system
 nano .env
+
+# Build and start (takes longer, downloads ROCm base images)
+docker compose up -d --build
 ```
 
 ### 2. Start Services
@@ -219,6 +245,28 @@ curl -X POST -F 'file=@audio.mp3' http://localhost:9000/transcribe
 curl -X POST -F 'file=@audio.mp3' -F 'language=en' http://localhost:9000/transcribe
 ```
 
+### Chatterbox TTS
+
+```bash
+# Web UI
+open http://localhost:8880
+
+# API docs
+open http://localhost:8880/docs
+
+# Generate speech via API
+curl -X POST http://localhost:8880/tts \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hello, this is a test.", "voice": "default"}' \
+  --output speech.wav
+```
+
+Features:
+- Zero-shot voice cloning (5 seconds of audio)
+- Emotion control
+- OpenAI-compatible API
+- Audiobook-scale text processing
+
 ### ComfyUI
 
 1. Open http://localhost:8188 in browser
@@ -294,3 +342,5 @@ MIT License - See [LICENSE](LICENSE) for details.
 - [Ollama](https://ollama.ai/) - Local LLM inference
 - [OpenAI Whisper](https://github.com/openai/whisper) - Speech recognition
 - [ComfyUI](https://github.com/comfyanonymous/ComfyUI) - Image generation
+- [Chatterbox TTS](https://github.com/resemble-ai/chatterbox) by [Resemble AI](https://www.resemble.ai/) - Text-to-speech model
+- [Chatterbox-TTS-Server](https://github.com/devnen/Chatterbox-TTS-Server) by devnen - TTS API server wrapper

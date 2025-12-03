@@ -63,21 +63,29 @@ Three tiers of STT capability:
 
 Models path: `/home/daniel/ai/models/stt`
 
-### TTS (Text-to-Speech)
+### TTS: Chatterbox (Text-to-Speech)
 
-**Status**: Missing component - needs implementation
+- **Port**: 8880
+- **Image**: Built from [devnen/Chatterbox-TTS-Server](https://github.com/devnen/Chatterbox-TTS-Server) (git submodule)
+- **Web UI**: http://localhost:8880
+- **API Docs**: http://localhost:8880/docs
 
-Natural-sounding local TTS for:
-- Podcast generation (multi-presenter, voice cloning)
-- General text-to-audio conversion
+**Features**:
+- Zero-shot voice cloning from 5 seconds of audio
+- Emotion exaggeration control
+- OpenAI-compatible API endpoint
+- Native ROCm support (PyTorch 2.6.0 + ROCm 6.4.1)
+- Audiobook-scale text processing with intelligent chunking
+- MIT licensed
 
-**Podcast workflow**: Agent creates script → script diarized by two hosts → concatenated with prompt → episode output. This is a separate project but depends on TTS being available in this stack.
+**Upstream**: The Chatterbox model is by [Resemble AI](https://www.resemble.ai/chatterbox/) - in blind tests, 63% of listeners preferred it over ElevenLabs.
 
-**Requirements**:
-- Human-sounding, natural voices (baseline requirement)
-- Voice cloning nice-to-have but not essential - stock voices acceptable
-- Must run on AMD/ROCm
-- Ease of setup prioritized over feature completeness
+**Data paths**:
+- Voices: `./stacks/chatterbox/data/voices/`
+- Reference audio: `./stacks/chatterbox/data/reference_audio/`
+- Outputs: `./stacks/chatterbox/data/outputs/`
+
+**Podcast workflow**: Agent creates script → script diarized by two hosts → TTS generates audio per speaker → concatenated → episode output.
 
 ### Image Generation: ComfyUI
 
@@ -148,14 +156,14 @@ Or via Docker Compose (included in main compose file)
 
 ## Future Expansion Ideas
 
-### TTS Models to Investigate
+### Alternative TTS Models
 
-These models show promise for ROCm compatibility:
+If Chatterbox doesn't meet specific needs, these alternatives have ROCm potential:
 
-- **Microsoft Vibe Voice**: High-quality neural TTS
-- **Dia (D-I-A)**: Hugging Face model worth testing
-- **Kokoro**: Already tested, builds but needs ROCm optimization
-- **Fish Speech**: Multilingual TTS option
+- **Fish Speech**: Multilingual TTS with [dedicated ROCm fork](https://github.com/moyutegong/fish-speech-rocm) (CC-BY-NC-SA license on weights)
+- **Dia (D-I-A)**: Same author as Chatterbox server has a [Dia server](https://github.com/devnen/Dia-TTS-Server)
+- **Kokoro**: Community ROCm fork exists but image size is ~22GB
+- **Tortoise-TTS**: Slower but very high quality voice cloning
 
 ### ASR/STT Alternatives
 
@@ -171,7 +179,6 @@ These models show promise for ROCm compatibility:
 - **SillyTavern**: Alternative chat UI with character support
 - **Automatic1111**: Alternative to ComfyUI for image generation
 - **RVC**: Real-time voice conversion
-- **Tortoise-TTS**: Slower but very high quality voice cloning
 
 ## MCP Server Integration
 

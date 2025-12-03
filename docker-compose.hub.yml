@@ -1,6 +1,10 @@
-# AMD AI Server Stack - Main Orchestration File
-# This file brings up all services together
-# For individual service control, use the files in stacks/
+# AMD AI Server Stack - Pre-built Images Version
+# Use this if you want to skip building and use Docker Hub images
+#
+# Usage: docker compose -f docker-compose.hub.yml up -d
+#
+# Images are built and published via GitHub Actions from this repo.
+# Source: https://github.com/danielrosehill/AMD-AI-Server
 
 services:
   # ==========================================================================
@@ -29,8 +33,6 @@ services:
     ipc: host
     networks:
       - ai-stack
-    labels:
-      - com.centurylinklabs.watchtower.enable=true
 
   # ==========================================================================
   # MEDIA: ComfyUI (Image Generation)
@@ -60,17 +62,12 @@ services:
     ipc: host
     networks:
       - ai-stack
-    labels:
-      - com.centurylinklabs.watchtower.enable=true
 
   # ==========================================================================
-  # STT: Whisper Speech-to-Text
+  # STT: Whisper Speech-to-Text (Pre-built)
   # ==========================================================================
   whisper:
-    build:
-      context: ./stacks/whisper
-      dockerfile: Dockerfile
-    image: whisper-rocm:latest
+    image: danielrosehill/amd-ai-whisper:latest
     container_name: whisper-rocm
     restart: unless-stopped
     ports:
@@ -80,11 +77,9 @@ services:
       - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
       - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
       - WHISPER_MODEL=${WHISPER_MODEL:-large-v3-turbo}
-      - WHISPER_FINETUNE_MODEL=/models/finetune
       - WHISPER_LANGUAGE=${WHISPER_LANGUAGE:-}
     volumes:
       - ${STT_MODELS:-./models/stt}:/root/.cache/whisper
-      - ${WHISPER_FINETUNE_MODEL:-/home/daniel/ai/models/stt/finetunes/v2/originals/finetune_large}:/models/finetune:ro
       - ./uploads:/app/uploads
     devices:
       - /dev/kfd
@@ -99,14 +94,11 @@ services:
       - ai-stack
 
   # ==========================================================================
-  # TTS: Chatterbox Text-to-Speech
+  # TTS: Chatterbox Text-to-Speech (Pre-built)
   # https://github.com/devnen/Chatterbox-TTS-Server
   # ==========================================================================
   chatterbox:
-    build:
-      context: ./stacks/chatterbox/Chatterbox-TTS-Server
-      dockerfile: Dockerfile.rocm
-    image: chatterbox-tts-rocm:latest
+    image: danielrosehill/amd-ai-chatterbox:latest
     container_name: chatterbox-tts
     restart: unless-stopped
     ports:
@@ -133,64 +125,23 @@ services:
     shm_size: 8g
     networks:
       - ai-stack
-    labels:
-      - com.centurylinklabs.watchtower.enable=false
 
   # ==========================================================================
-  # BASE: PyTorch ROCm Environment
-  # ==========================================================================
-  pytorch-rocm:
-    image: rocm/pytorch:latest
-    container_name: pytorch-rocm
-    hostname: pytorch-rocm
-    restart: unless-stopped
-    profiles:
-      - dev  # Only start with --profile dev
-    devices:
-      - /dev/kfd
-      - /dev/dri
-    security_opt:
-      - seccomp:unconfined
-    group_add:
-      - "44"   # video
-      - "992"  # render
-    ipc: host
-    environment:
-      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
-      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
-      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
-      - PYTORCH_ROCM_ARCH=${PYTORCH_ROCM_ARCH:-gfx1101}
-    volumes:
-      - ${MODELS_BASE:-./models}:/workspace/models
-      - ./data:/workspace/data
-    working_dir: /workspace
-    stdin_open: true
-    tty: true
-    command: /bin/bash
-    networks:
-      - ai-stack
-
-  # ==========================================================================
-  # MANAGEMENT: Control Panel
+  # MANAGEMENT: Control Panel (Pre-built)
   # ==========================================================================
   control-panel:
-    build:
-      context: ./control-panel
-      dockerfile: Dockerfile
-    image: amd-ai-control-panel:latest
+    image: danielrosehill/amd-ai-control-panel:latest
     container_name: ai-control-panel
     restart: unless-stopped
     ports:
       - "${CONTROL_PANEL_PORT:-8090}:8090"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./docker-compose.yml:/app/docker-compose.yml:ro
+      - ./docker-compose.hub.yml:/app/docker-compose.yml:ro
     environment:
       - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-amd-ai-server}
     networks:
       - ai-stack
-    labels:
-      - com.centurylinklabs.watchtower.enable=false
 
 volumes:
   chatterbox_hf_cache:

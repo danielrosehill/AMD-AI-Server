@@ -1,0 +1,31 @@
+# Chatterbox TTS Configuration
+# This file is auto-generated on first run but can be customized
+# See upstream docs: https://github.com/devnen/Chatterbox-TTS-Server
+
+server:
+  host: "0.0.0.0"
+  port: 8004
+
+model:
+  # Model will be downloaded from HuggingFace on first run
+  repo_id: "ResembleAI/chatterbox"
+
+device:
+  # auto will detect GPU (ROCm/CUDA) or fall back to CPU
+  type: "auto"
+
+generation:
+  # Default generation parameters
+  temperature: 0.8
+  seed: null  # null for random
+  speed_factor: 1.0
+
+audio:
+  format: "wav"
+  sample_rate: 24000
+
+# Paths (relative to /app in container)
+paths:
+  voices: "voices"
+  reference_audio: "reference_audio"
+  outputs: "outputs"
