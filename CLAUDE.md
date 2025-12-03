@@ -6,17 +6,41 @@ Docker Compose configurations for AMD ROCm-based AI workloads.
 
 Version-controlled Docker Compose configurations for bringing up AI stack components on AMD GPU systems. This approach addresses the compatibility challenges AMD users face compared to NVIDIA, using Docker to modularize installation and avoid dependency conflicts.
 
+**Goals:**
+1. **Single source of truth** for local AI services - everything brought up from here
+2. **Unified stack** that starts on boot with all needed services available
+3. **No port conflicts** - services properly spaced out
+4. **Visual management** - stop/start services without editing compose files or Portainer
+5. **MCP-ready** - services expose APIs that can be wrapped by MCP servers for Claude integration
+
 ## Architecture Philosophy
+
+### Why Docker Over Conda
+
+Previous attempts used Conda environments to share PyTorch/ROCm across workloads. While functional, this approach had complications and felt like the wrong tool. Docker provides:
+
+- **Layer caching**: Reuse large foundational layers (ROCm, PyTorch) across stacks without duplicating storage
+- **Isolation**: Services don't conflict with each other or host packages
+- **Idle efficiency**: Containers don't consume resources when idle (a misconception that held back adoption)
+- **Reproducibility**: Consistent environments regardless of host state
+
+The trade-off is isolation from host, but GPU passthrough works well with proper configuration.
 
 ### Layering Concept
 
 AI stacks involve large foundational technologies (ROCm, PyTorch) with smaller components layered on top. This repository maintains a stable ROCm + PyTorch base to avoid the "disk bloat" that comes from discrete stacks requiring different PyTorch builds.
+
+**Key principle**: Don't use bleeding edge for the backbone. Keep PyTorch/ROCm stable and reliable, then layer application-specific components on top.
 
 ### Foundational Images
 
 - **ROCm**: AMD's GPU compute platform
 - **PyTorch ROCm**: `rocm/pytorch:latest` (~29GB)
 - **Ollama ROCm**: `ollama/ollama:rocm` (~6.4GB)
+
+### Consolidation Strategy
+
+Prefer one setup over duplicates. If Ollama exists both on host and in Docker, consolidate to Docker and migrate models rather than maintaining parallel installations. Avoid re-pulling gigantic models.
 
 ## Stack Components
 
@@ -26,6 +50,8 @@ AI stacks involve large foundational technologies (ROCm, PyTorch) with smaller c
 - **Image**: `ollama/ollama:rocm`
 - **Models path**: `/home/daniel/ai/models/gguf` (host-bound)
 - **Companion**: Open WebUI on port 3000
+
+**Primary use**: Scripting and text processing rather than chat interfaces. Key value is sitting alongside other stack components for combined workflows (e.g., Whisper → Ollama for enhanced transcription).
 
 ### STT (Speech-to-Text)
 
@@ -39,9 +65,19 @@ Models path: `/home/daniel/ai/models/stt`
 
 ### TTS (Text-to-Speech)
 
+**Status**: Missing component - needs implementation
+
 Natural-sounding local TTS for:
 - Podcast generation (multi-presenter, voice cloning)
 - General text-to-audio conversion
+
+**Podcast workflow**: Agent creates script → script diarized by two hosts → concatenated with prompt → episode output. This is a separate project but depends on TTS being available in this stack.
+
+**Requirements**:
+- Human-sounding, natural voices (baseline requirement)
+- Voice cloning nice-to-have but not essential - stock voices acceptable
+- Must run on AMD/ROCm
+- Ease of setup prioritized over feature completeness
 
 ### Image Generation: ComfyUI
 
@@ -54,6 +90,23 @@ Services are exposed via:
 1. **Web UIs** (primary user interface)
 2. **REST APIs** (programmatic access)
 3. **MCP Servers** (natural language tool access via Claude)
+
+### API Architecture Vision
+
+**Current approach**: Each service exposes its own local API
+
+**Future vision**: Single unified local AI API with OpenAPI schema that proxies to all backend services. Rather than four parallel APIs (Ollama, STT, Whisper, ComfyUI), one API that routes to appropriate backends. This simplifies MCP server development - one schema to wrap instead of many.
+
+**Implementation path**:
+1. First ensure all services provide local APIs with definitions
+2. Control panel links to individual API definitions
+3. Optionally add unified proxy layer later
+
+### MCP Integration Strategy
+
+The stack's primary purpose is providing local AI capabilities for MCP servers to consume. Example: A local transcription MCP server shouldn't need to spin up its own Whisper stack - it should find the API already running and accessible.
+
+**Key insight**: Don't pack application logic into this server. Keep it as core services only. Specifics handled by applications consuming the APIs.
 
 ## Host Paths
 
@@ -106,10 +159,11 @@ These models show promise for ROCm compatibility:
 
 ### ASR/STT Alternatives
 
-- **WhisperX**: Word-level timestamps, speaker diarization
+- **WhisperX**: Word-level timestamps, speaker diarization - useful for podcast workflow, nice-to-have if low background weight
 - **Faster-Whisper**: CTranslate2 backend (may need CUDA->ROCm work)
 - **Whisper.cpp**: CPU fallback or ROCm via hipBLAS
 - **Fine-tuned Whisper**: Custom models for specific accents/domains
+- **VAD (Voice Activity Detection)**: Useful component for speech detection pipelines - future consideration
 
 ### Other Potential Additions
 
@@ -125,6 +179,8 @@ Services could expose MCP (Model Context Protocol) servers for Claude integratio
 - Whisper MCP for voice-to-text in conversations
 - TTS MCP for Claude to speak responses
 - Image generation MCP for inline image creation
+
+**Note**: MCP wraps APIs - so long as services provide OpenAPI-compatible local APIs, they're easy to scaffold into MCP servers. The unified API vision would make this even simpler.
 
 ## Notes for Other Users
 
