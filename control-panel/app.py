@@ -72,6 +72,37 @@ STACK_CONFIG = {
 # Compose file path
 COMPOSE_PATH = Path(__file__).parent.parent / "docker-compose.yml"
 
+# MCP Server configuration
+MCP_CONFIG = {
+    "name": "local-ai",
+    "path": Path(__file__).parent.parent / "mcp-server",
+    "command": str(Path(__file__).parent.parent / "mcp-server" / ".venv" / "bin" / "python"),
+    "args": ["-m", "local_ai_mcp.server"],
+    "env": {
+        "WHISPER_URL": "http://localhost:9000",
+        "OLLAMA_URL": "http://localhost:11434",
+        "OLLAMA_MODEL": "llama3.2",
+    },
+    "tools": [
+        {
+            "name": "transcribe_raw",
+            "description": "Transcribe audio using large-v3-turbo (general purpose)",
+        },
+        {
+            "name": "transcribe_finetune",
+            "description": "Transcribe using fine-tuned model (optimized for Daniel's voice)",
+        },
+        {
+            "name": "transcribe_clean",
+            "description": "Transcribe + clean up via Ollama (fixes punctuation, removes fillers)",
+        },
+        {
+            "name": "whisper_health",
+            "description": "Check Whisper service status and model info",
+        },
+    ],
+}
+
 
 class ServiceAction(BaseModel):
     action: str  # start, stop, restart
@@ -272,6 +303,42 @@ async def api_logs(service_name: str, lines: int = 100):
         raise HTTPException(status_code=404, detail=f"Container {container_name} not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/mcp")
+async def api_mcp():
+    """Get MCP server configuration and code samples."""
+    import json
+
+    # Generate config snippets
+    claude_desktop_config = {
+        "mcpServers": {
+            MCP_CONFIG["name"]: {
+                "command": MCP_CONFIG["command"],
+                "args": MCP_CONFIG["args"],
+                "env": MCP_CONFIG["env"],
+            }
+        }
+    }
+
+    mcpm_command = (
+        f"mcpm new {MCP_CONFIG['name']} "
+        f"--type stdio "
+        f"--command \"{MCP_CONFIG['command']}\" "
+        f"--args \"{' '.join(MCP_CONFIG['args'])}\" "
+        f"--env \"{','.join(f'{k}={v}' for k, v in MCP_CONFIG['env'].items())}\" "
+        f"--force"
+    )
+
+    return {
+        "name": MCP_CONFIG["name"],
+        "tools": MCP_CONFIG["tools"],
+        "env": MCP_CONFIG["env"],
+        "configs": {
+            "claude_desktop": json.dumps(claude_desktop_config, indent=2),
+            "mcpm_command": mcpm_command,
+        },
+    }
 
 
 if __name__ == "__main__":

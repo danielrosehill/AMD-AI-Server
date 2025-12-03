@@ -267,6 +267,128 @@
             text-align: center;
         }
 
+        /* MCP Panel styles */
+        .mcp-panel {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            margin-top: 1.5rem;
+        }
+
+        .mcp-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .mcp-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .mcp-tools {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .mcp-tool {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        .mcp-tool-name {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.875rem;
+            color: #a78bfa;
+            margin-bottom: 0.25rem;
+        }
+
+        .mcp-tool-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .mcp-config-section {
+            margin-top: 1rem;
+        }
+
+        .mcp-config-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .mcp-tab {
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            border: none;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .mcp-tab.active {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .mcp-tab:hover:not(.active) {
+            background: #2a2a2a;
+        }
+
+        .mcp-code {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 1rem;
+            position: relative;
+        }
+
+        .mcp-code pre {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 0;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--accent-green);
+        }
+
+        .copy-btn.copied {
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
         /* Modal for logs */
         .modal {
             display: none;
@@ -500,6 +622,44 @@
             </div>
             {% endfor %}
         </div>
+
+        <!-- MCP Integration Panel -->
+        <div class="mcp-panel" id="mcpPanel">
+            <div class="mcp-header">
+                <div class="mcp-icon">
+                    <i data-lucide="plug" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div>
+                    <span class="stack-title">MCP Integration</span>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Connect Claude to local AI services</div>
+                </div>
+            </div>
+
+            <div class="mcp-tools" id="mcpTools">
+                <!-- Populated by JavaScript -->
+            </div>
+
+            <div class="mcp-config-section">
+                <div class="mcp-config-tabs">
+                    <button class="mcp-tab active" data-tab="mcpm" onclick="showMcpTab('mcpm')">MCPM</button>
+                    <button class="mcp-tab" data-tab="claude-desktop" onclick="showMcpTab('claude-desktop')">Claude Desktop</button>
+                </div>
+
+                <div class="mcp-code" id="mcpCodeMcpm">
+                    <button class="copy-btn" onclick="copyMcpConfig('mcpm')">
+                        <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                    </button>
+                    <pre id="mcpmCode">Loading...</pre>
+                </div>
+
+                <div class="mcp-code" id="mcpCodeClaudeDesktop" style="display: none;">
+                    <button class="copy-btn" onclick="copyMcpConfig('claude-desktop')">
+                        <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                    </button>
+                    <pre id="claudeDesktopCode">Loading...</pre>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Logs Modal -->
@@ -623,6 +783,70 @@
                 console.error('Status refresh failed:', e);
             }
         }, 30000);
+
+        // MCP Panel functions
+        let mcpConfig = null;
+
+        async function loadMcpConfig() {
+            try {
+                mcpConfig = await apiCall('/api/mcp');
+
+                // Render tools
+                const toolsContainer = document.getElementById('mcpTools');
+                toolsContainer.innerHTML = mcpConfig.tools.map(tool => `
+                    <div class="mcp-tool">
+                        <div class="mcp-tool-name">${tool.name}</div>
+                        <div class="mcp-tool-desc">${tool.description}</div>
+                    </div>
+                `).join('');
+
+                // Render config snippets
+                document.getElementById('mcpmCode').textContent = mcpConfig.configs.mcpm_command;
+                document.getElementById('claudeDesktopCode').textContent = mcpConfig.configs.claude_desktop;
+
+            } catch (e) {
+                console.error('Failed to load MCP config:', e);
+                document.getElementById('mcpTools').innerHTML = '<div class="empty-stack">Failed to load MCP configuration</div>';
+            }
+        }
+
+        function showMcpTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.mcp-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+
+            // Show/hide code blocks
+            document.getElementById('mcpCodeMcpm').style.display = tab === 'mcpm' ? 'block' : 'none';
+            document.getElementById('mcpCodeClaudeDesktop').style.display = tab === 'claude-desktop' ? 'block' : 'none';
+        }
+
+        async function copyMcpConfig(type) {
+            const text = type === 'mcpm'
+                ? mcpConfig.configs.mcpm_command
+                : mcpConfig.configs.claude_desktop;
+
+            try {
+                await navigator.clipboard.writeText(text);
+                const btn = event.target.closest('.copy-btn');
+                btn.classList.add('copied');
+                btn.innerHTML = '<i data-lucide="check" style="width: 14px; height: 14px;"></i>';
+                lucide.createIcons();
+
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<i data-lucide="copy" style="width: 14px; height: 14px;"></i>';
+                    lucide.createIcons();
+                }, 2000);
+
+                showToast('Copied to clipboard', 'success');
+            } catch (e) {
+                showToast('Failed to copy', 'error');
+            }
+        }
+
+        // Load MCP config on page load
+        loadMcpConfig();
     </script>
 </body>
 </html>

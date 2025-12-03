@@ -173,14 +173,60 @@ These models show promise for ROCm compatibility:
 - **RVC**: Real-time voice conversion
 - **Tortoise-TTS**: Slower but very high quality voice cloning
 
-### MCP Server Integration
+## MCP Server Integration
 
-Services could expose MCP (Model Context Protocol) servers for Claude integration:
-- Whisper MCP for voice-to-text in conversations
-- TTS MCP for Claude to speak responses
-- Image generation MCP for inline image creation
+The stack includes a unified MCP server (`local-ai`) that provides Claude with direct access to local AI services.
 
-**Note**: MCP wraps APIs - so long as services provide OpenAPI-compatible local APIs, they're easy to scaffold into MCP servers. The unified API vision would make this even simpler.
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `transcribe_raw` | Transcribe audio using large-v3-turbo (general purpose) |
+| `transcribe_finetune` | Transcribe using fine-tuned Whisper model (Daniel's voice) |
+| `transcribe_clean` | Transcribe + Ollama cleanup (fixes punctuation, removes fillers) |
+| `whisper_health` | Check Whisper service status |
+
+### Setup
+
+```bash
+cd mcp-server
+uv venv && source .venv/bin/activate && uv pip install -e .
+```
+
+### Configuration
+
+**Via MCPM:**
+```bash
+mcpm new local-ai \
+  --type stdio \
+  --command "/path/to/mcp-server/.venv/bin/python" \
+  --args "-m local_ai_mcp.server" \
+  --env "WHISPER_URL=http://localhost:9000,OLLAMA_URL=http://localhost:11434,OLLAMA_MODEL=llama3.2" \
+  --force
+```
+
+**Via Claude Desktop config:**
+```json
+{
+  "mcpServers": {
+    "local-ai": {
+      "command": "/path/to/mcp-server/.venv/bin/python",
+      "args": ["-m", "local_ai_mcp.server"],
+      "env": {
+        "WHISPER_URL": "http://localhost:9000",
+        "OLLAMA_URL": "http://localhost:11434",
+        "OLLAMA_MODEL": "llama3.2"
+      }
+    }
+  }
+}
+```
+
+### Control Panel Integration
+
+The control panel (port 8090) includes an MCP Integration panel showing:
+- Available tools and descriptions
+- Copy-paste configuration snippets for MCPM and Claude Desktop
 
 ## Notes for Other Users
 
