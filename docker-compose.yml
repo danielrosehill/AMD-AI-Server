@@ -22,31 +22,11 @@ services:
       - /dev/kfd
       - /dev/dri
     group_add:
-      - video
-      - render
+      - "44"   # video
+      - "992"  # render
     security_opt:
       - seccomp:unconfined
     ipc: host
-    networks:
-      - ai-stack
-    labels:
-      - com.centurylinklabs.watchtower.enable=true
-
-  # ==========================================================================
-  # CORE: Open WebUI (Chat Interface)
-  # ==========================================================================
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:main
-    container_name: open-webui
-    restart: unless-stopped
-    ports:
-      - "${OPENWEBUI_PORT:-3000}:8080"
-    environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-    volumes:
-      - open-webui-data:/app/backend/data
-    depends_on:
-      - ollama
     networks:
       - ai-stack
     labels:
@@ -73,8 +53,8 @@ services:
       - /dev/kfd
       - /dev/dri
     group_add:
-      - video
-      - render
+      - "44"   # video
+      - "992"  # render
     security_opt:
       - seccomp:unconfined
     ipc: host
@@ -82,6 +62,39 @@ services:
       - ai-stack
     labels:
       - com.centurylinklabs.watchtower.enable=true
+
+  # ==========================================================================
+  # STT: Whisper Speech-to-Text
+  # ==========================================================================
+  whisper:
+    build:
+      context: ./stacks/whisper
+      dockerfile: Dockerfile
+    image: whisper-rocm:latest
+    container_name: whisper-rocm
+    restart: unless-stopped
+    ports:
+      - "${WHISPER_PORT:-9000}:9000"
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
+      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
+      - WHISPER_MODEL=${WHISPER_MODEL:-base}
+      - WHISPER_LANGUAGE=${WHISPER_LANGUAGE:-}
+    volumes:
+      - ${STT_MODELS:-./models/stt}:/root/.cache/whisper
+      - ./uploads:/app/uploads
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - "44"   # video
+      - "992"  # render
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    networks:
+      - ai-stack
 
   # ==========================================================================
   # BASE: PyTorch ROCm Environment
@@ -99,8 +112,8 @@ services:
     security_opt:
       - seccomp:unconfined
     group_add:
-      - video
-      - render
+      - "44"   # video
+      - "992"  # render
     ipc: host
     environment:
       - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
@@ -116,9 +129,6 @@ services:
     command: /bin/bash
     networks:
       - ai-stack
-
-volumes:
-  open-webui-data:
 
 networks:
   ai-stack:
