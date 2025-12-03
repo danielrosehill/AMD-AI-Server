@@ -1,0 +1,55 @@
+# Text-to-Speech Service
+# Natural-sounding TTS for podcast generation and general use
+
+services:
+  # Kokoro TTS - High quality, fast inference
+  kokoro-tts:
+    image: kokoro-api-rocm:latest
+    container_name: kokoro-tts
+    restart: unless-stopped
+    ports:
+      - "${TTS_PORT:-8880}:8880"
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
+      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
+    volumes:
+      - ${TTS_MODELS:-./models}:/app/models
+      - ./output:/app/output
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    networks:
+      - ai-stack
+
+  # Alternative: Fish Speech (for voice cloning)
+  # Uncomment if needed
+  # fish-speech:
+  #   image: fishaudio/fish-speech:latest
+  #   container_name: fish-speech
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8881:8080"
+  #   environment:
+  #     - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
+  #   volumes:
+  #     - ${TTS_MODELS:-./models}:/app/models
+  #   devices:
+  #     - /dev/kfd
+  #     - /dev/dri
+  #   group_add:
+  #     - video
+  #     - render
+  #   networks:
+  #     - ai-stack
+
+networks:
+  ai-stack:
+    name: ${DOCKER_NETWORK:-ai-stack}
+    external: true

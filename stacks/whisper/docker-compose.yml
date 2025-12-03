@@ -1,0 +1,38 @@
+# Whisper STT Service
+# GPU-accelerated speech-to-text with ROCm
+
+services:
+  whisper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: whisper-rocm:latest
+    container_name: whisper-rocm
+    restart: unless-stopped
+    ports:
+      - "${WHISPER_PORT:-9000}:9000"
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
+      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
+      - WHISPER_MODEL=${WHISPER_MODEL:-base}
+      - WHISPER_LANGUAGE=${WHISPER_LANGUAGE:-}
+    volumes:
+      - ${STT_MODELS:-./models}:/root/.cache/whisper
+      - ./uploads:/app/uploads
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    networks:
+      - ai-stack
+
+networks:
+  ai-stack:
+    name: ${DOCKER_NETWORK:-ai-stack}
+    external: true

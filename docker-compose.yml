@@ -1,0 +1,126 @@
+# AMD AI Server Stack - Main Orchestration File
+# This file brings up all services together
+# For individual service control, use the files in stacks/
+
+services:
+  # ==========================================================================
+  # CORE: Ollama LLM Server
+  # ==========================================================================
+  ollama:
+    image: ollama/ollama:rocm
+    container_name: ollama-rocm
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
+      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
+    volumes:
+      - ${OLLAMA_MODELS:-./models/ollama}:/root/.ollama
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    networks:
+      - ai-stack
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  # ==========================================================================
+  # CORE: Open WebUI (Chat Interface)
+  # ==========================================================================
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - "${OPENWEBUI_PORT:-3000}:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - open-webui-data:/app/backend/data
+    depends_on:
+      - ollama
+    networks:
+      - ai-stack
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  # ==========================================================================
+  # MEDIA: ComfyUI (Image Generation)
+  # ==========================================================================
+  comfyui:
+    image: yanwk/comfyui-boot:rocm
+    container_name: comfyui
+    restart: unless-stopped
+    ports:
+      - "${COMFYUI_PORT:-8188}:8188"
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
+      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
+      - PYTORCH_ROCM_ARCH=${PYTORCH_ROCM_ARCH:-gfx1101}
+      - CLI_ARGS=--listen 0.0.0.0 --port 8188
+    volumes:
+      - ${COMFYUI_PATH:-./comfyui-data}:/root
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    networks:
+      - ai-stack
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  # ==========================================================================
+  # BASE: PyTorch ROCm Environment
+  # ==========================================================================
+  pytorch-rocm:
+    image: rocm/pytorch:latest
+    container_name: pytorch-rocm
+    hostname: pytorch-rocm
+    restart: unless-stopped
+    profiles:
+      - dev  # Only start with --profile dev
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    security_opt:
+      - seccomp:unconfined
+    group_add:
+      - video
+      - render
+    ipc: host
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
+      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
+      - PYTORCH_ROCM_ARCH=${PYTORCH_ROCM_ARCH:-gfx1101}
+    volumes:
+      - ${MODELS_BASE:-./models}:/workspace/models
+      - ./data:/workspace/data
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+    networks:
+      - ai-stack
+
+volumes:
+  open-webui-data:
+
+networks:
+  ai-stack:
+    name: ${DOCKER_NETWORK:-ai-stack}
+    driver: bridge

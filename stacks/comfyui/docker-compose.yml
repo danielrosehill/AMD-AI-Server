@@ -1,0 +1,37 @@
+# ComfyUI with ROCm support
+# Image generation and manipulation
+
+services:
+  comfyui:
+    image: yanwk/comfyui-boot:rocm
+    container_name: comfyui
+    restart: unless-stopped
+    ports:
+      - "${COMFYUI_PORT:-8188}:8188"
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
+      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
+      - PYTORCH_ROCM_ARCH=${PYTORCH_ROCM_ARCH:-gfx1101}
+      - CLI_ARGS=--listen 0.0.0.0 --port 8188
+    volumes:
+      # Bind mount to existing ComfyUI installation (preserves models and custom nodes)
+      - ${COMFYUI_PATH:-/home/daniel/programs/ai-ml/ComfyUI}:/root
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+      - render
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    networks:
+      - ai-stack
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+networks:
+  ai-stack:
+    name: ${DOCKER_NETWORK:-ai-stack}
+    external: true

@@ -1,0 +1,38 @@
+# PyTorch ROCm Base Environment
+# For general ML tasks, experimentation, and as a base for custom services
+
+services:
+  pytorch-rocm:
+    image: rocm/pytorch:latest
+    container_name: pytorch-rocm
+    hostname: pytorch-rocm
+    restart: unless-stopped
+    network_mode: host
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    security_opt:
+      - seccomp:unconfined
+    group_add:
+      - video
+      - render
+    ipc: host
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
+      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
+      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
+      - PYTORCH_ROCM_ARCH=${PYTORCH_ROCM_ARCH:-gfx1101}
+    volumes:
+      # Working directories
+      - ${MODELS_BASE:-/home/daniel/ai/models}:/workspace/models
+      - ./data:/workspace/data
+      - ./notebooks:/workspace/notebooks
+      - ./cache:/root/.cache
+      # Scripts from this repo
+      - ../../scripts:/workspace/scripts:ro
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
