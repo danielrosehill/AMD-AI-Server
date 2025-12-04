@@ -49,19 +49,19 @@ Prefer one setup over duplicates. If Ollama exists both on host and in Docker, c
 - **Port**: 11434
 - **Image**: `ollama/ollama:rocm`
 - **Models path**: `/home/daniel/ai/models/gguf` (host-bound)
-- **Companion**: Open WebUI on port 3000
 
 **Primary use**: Scripting and text processing rather than chat interfaces. Key value is sitting alongside other stack components for combined workflows (e.g., Whisper → Ollama for enhanced transcription).
 
-### STT (Speech-to-Text)
+### STT (Speech-to-Text): Whisper
 
-Three tiers of STT capability:
+- **Port**: 9000
+- **Model**: large-v3-turbo (default)
+- **Models path**: `/home/daniel/ai/models/stt`
 
-1. **Basic**: GPU-accelerated Whisper with punctuation restoration
-2. **Enhanced**: Whisper + Ollama post-processing for clarity
-3. **Advanced**: WhisperX for word-level diarization and SRT output
-
-Models path: `/home/daniel/ai/models/stt`
+**Features**:
+- GPU-accelerated transcription via ROCm
+- Support for fine-tuned models
+- Multiple endpoints: `/transcribe`, `/transcribe/finetune`
 
 ### TTS: Chatterbox (Text-to-Speech)
 
@@ -156,27 +156,16 @@ Or via Docker Compose (included in main compose file)
 
 ## Future Expansion Ideas
 
-### Alternative TTS Models
+### ASR/STT Enhancements
 
-If Chatterbox doesn't meet specific needs, these alternatives have ROCm potential:
-
-- **Fish Speech**: Multilingual TTS with [dedicated ROCm fork](https://github.com/moyutegong/fish-speech-rocm) (CC-BY-NC-SA license on weights)
-- **Dia (D-I-A)**: Same author as Chatterbox server has a [Dia server](https://github.com/devnen/Dia-TTS-Server)
-- **Kokoro**: Community ROCm fork exists but image size is ~22GB
-- **Tortoise-TTS**: Slower but very high quality voice cloning
-
-### ASR/STT Alternatives
-
-- **WhisperX**: Word-level timestamps, speaker diarization - useful for podcast workflow, nice-to-have if low background weight
-- **Faster-Whisper**: CTranslate2 backend (may need CUDA->ROCm work)
-- **Whisper.cpp**: CPU fallback or ROCm via hipBLAS
-- **Fine-tuned Whisper**: Custom models for specific accents/domains
-- **VAD (Voice Activity Detection)**: Useful component for speech detection pipelines - future consideration
+- **WhisperX**: Word-level timestamps, speaker diarization - useful for podcast workflow
+- **Whisper + Ollama**: Post-processing pipeline for cleanup (via MCP `transcribe_clean` tool)
+- **Fine-tuned Whisper**: Custom models for specific accents/domains (already supported via `/transcribe/finetune` endpoint)
 
 ### Other Potential Additions
 
-- **Open WebUI**: Chat interface for Ollama (pairs well with LLM stack)
-- **SillyTavern**: Alternative chat UI with character support
+- **Open WebUI**: Chat interface for Ollama
+- **Alternative TTS**: Dia, Kokoro, or Tortoise-TTS if Chatterbox doesn't meet needs
 - **Automatic1111**: Alternative to ComfyUI for image generation
 - **RVC**: Real-time voice conversion
 

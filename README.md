@@ -42,28 +42,36 @@ Docker solves this by:
 
 ## Services
 
-### Core Infrastructure
+### LLM Inference
 
 | Service | Port | Image | Description |
 |---------|------|-------|-------------|
 | Ollama | 11434 | `ollama/ollama:rocm` | LLM inference server |
-| Open WebUI | 3000 | `ghcr.io/open-webui/open-webui:main` | Chat interface for Ollama |
-| PyTorch ROCm | - | `rocm/pytorch:latest` | Base environment for ML tasks |
 
 ### Speech Services
 
 | Service | Port | Description |
 |---------|------|-------------|
-| Whisper | 9000 | GPU-accelerated speech-to-text |
-| Whisper Enhanced | 9001 | STT with LLM post-processing |
-| WhisperX | 9002 | Word-level diarization + SRT output |
+| Whisper | 9000 | GPU-accelerated speech-to-text (large-v3-turbo) |
+| Chatterbox TTS | 8880 | Natural-sounding text-to-speech with voice cloning |
 
-### Media Generation
+### Image Generation
 
 | Service | Port | Description |
 |---------|------|-------------|
-| ComfyUI | 8188 | Image generation and manipulation |
-| Chatterbox TTS | 8880 | Natural-sounding text-to-speech with voice cloning |
+| ComfyUI | 8188 | Node-based image generation and manipulation |
+
+### Management
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Control Panel | 8090 | Web UI for managing services, viewing logs, GPU stats |
+
+### Development (Optional)
+
+| Service | Port | Description |
+|---------|------|-------------|
+| PyTorch ROCm | - | Base environment for ML tasks (dev profile only) |
 
 ## Quick Start
 
@@ -149,21 +157,27 @@ AMD-AI-Server/
 ├── CLAUDE.md                    # AI agent context
 ├── .env.example                 # Environment template
 ├── docker-compose.yml           # Main orchestration file
+├── docker-compose.hub.yml       # Pre-built images from Docker Hub
+├── control-panel/               # Web UI for service management
+│   ├── app.py
+│   ├── Dockerfile
+│   └── templates/
+├── mcp-server/                  # MCP server for Claude integration
+│   └── local_ai_mcp/
 ├── stacks/
 │   ├── ollama/
-│   │   └── docker-compose.yml   # Ollama + Open WebUI
+│   │   └── docker-compose.yml
 │   ├── whisper/
-│   │   ├── docker-compose.yml   # Basic Whisper
-│   │   └── Dockerfile
-│   ├── whisper-enhanced/
-│   │   └── docker-compose.yml   # Whisper + Ollama post-processing
-│   ├── comfyui/
 │   │   ├── docker-compose.yml
 │   │   └── Dockerfile
-│   ├── tts/
-│   │   └── docker-compose.yml   # Text-to-speech
+│   ├── chatterbox/              # Text-to-speech (git submodule)
+│   │   ├── Chatterbox-TTS-Server/
+│   │   ├── config.yaml
+│   │   └── data/
+│   ├── comfyui/
+│   │   └── docker-compose.yml
 │   └── pytorch/
-│       └── docker-compose.yml   # Base PyTorch environment
+│       └── docker-compose.yml
 ├── scripts/
 │   ├── start.sh                 # Start services
 │   ├── stop.sh                  # Stop services
@@ -272,6 +286,54 @@ Features:
 1. Open http://localhost:8188 in browser
 2. Load or create workflows
 3. All existing models and custom nodes are available
+
+### Control Panel
+
+Access the web-based control panel at http://localhost:8090 for:
+- Starting/stopping individual services
+- Viewing container logs
+- Monitoring GPU memory usage
+- Quick links to service web UIs
+
+## MCP Server Integration
+
+The stack includes an MCP server (`mcp-server/`) that provides Claude with direct access to local AI services.
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `transcribe_raw` | Transcribe audio using large-v3-turbo |
+| `transcribe_finetune` | Transcribe using fine-tuned Whisper model |
+| `transcribe_clean` | Transcribe + Ollama cleanup (fixes punctuation, removes fillers) |
+| `whisper_health` | Check Whisper service status |
+
+### Setup
+
+```bash
+cd mcp-server
+uv venv && source .venv/bin/activate && uv pip install -e .
+```
+
+### Configuration
+
+Add to your Claude Desktop or Claude Code config:
+
+```json
+{
+  "mcpServers": {
+    "local-ai": {
+      "command": "/path/to/mcp-server/.venv/bin/python",
+      "args": ["-m", "local_ai_mcp.server"],
+      "env": {
+        "WHISPER_URL": "http://localhost:9000",
+        "OLLAMA_URL": "http://localhost:11434",
+        "OLLAMA_MODEL": "llama3.2"
+      }
+    }
+  }
+}
+```
 
 ## Performance
 
