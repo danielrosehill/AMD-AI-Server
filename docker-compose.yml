@@ -99,42 +99,25 @@ services:
       - ai-stack
 
   # ==========================================================================
-  # TTS: Chatterbox Text-to-Speech
-  # https://github.com/devnen/Chatterbox-TTS-Server
+  # TTS: Edge TTS (Microsoft Edge Text-to-Speech)
+  # https://github.com/travisvn/openai-edge-tts
   # ==========================================================================
-  chatterbox:
-    build:
-      context: ./stacks/chatterbox/Chatterbox-TTS-Server
-      dockerfile: Dockerfile.rocm
-    image: chatterbox-tts-rocm:latest
-    container_name: chatterbox-tts
+  edge-tts:
+    image: travisvn/openai-edge-tts:latest
+    container_name: edge-tts
     restart: unless-stopped
     ports:
-      - "${TTS_PORT:-8880}:8004"
+      - "${TTS_PORT:-8880}:5050"
     environment:
-      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
-      - HF_HUB_ENABLE_HF_TRANSFER=1
-    volumes:
-      - ${TTS_VOICES:-./stacks/chatterbox/data/voices}:/app/voices
-      - ${TTS_REFERENCE_AUDIO:-./stacks/chatterbox/data/reference_audio}:/app/reference_audio
-      - ${TTS_OUTPUTS:-./stacks/chatterbox/data/outputs}:/app/outputs
-      - ./stacks/chatterbox/data/logs:/app/logs
-      - ./stacks/chatterbox/config.yaml:/app/config.yaml
-      - chatterbox_hf_cache:/app/hf_cache
-    devices:
-      - /dev/kfd
-      - /dev/dri
-    group_add:
-      - "44"   # video
-      - "992"  # render
-    security_opt:
-      - seccomp:unconfined
-    ipc: host
-    shm_size: 8g
+      - PORT=5050
+      - DEFAULT_VOICE=en-US-AvaNeural
+      - DEFAULT_RESPONSE_FORMAT=mp3
+      - DEFAULT_SPEED=1.0
+      - REQUIRE_API_KEY=false
     networks:
       - ai-stack
     labels:
-      - com.centurylinklabs.watchtower.enable=false
+      - com.centurylinklabs.watchtower.enable=true
 
   # ==========================================================================
   # BASE: PyTorch ROCm Environment
@@ -191,10 +174,6 @@ services:
       - ai-stack
     labels:
       - com.centurylinklabs.watchtower.enable=false
-
-volumes:
-  chatterbox_hf_cache:
-    name: chatterbox_hf_cache
 
 networks:
   ai-stack:

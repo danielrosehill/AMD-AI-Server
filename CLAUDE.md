@@ -63,29 +63,21 @@ Prefer one setup over duplicates. If Ollama exists both on host and in Docker, c
 - Support for fine-tuned models
 - Multiple endpoints: `/transcribe`, `/transcribe/finetune`
 
-### TTS: Chatterbox (Text-to-Speech)
+### TTS: Edge TTS (Microsoft Edge Text-to-Speech)
 
 - **Port**: 8880
-- **Image**: Built from [devnen/Chatterbox-TTS-Server](https://github.com/devnen/Chatterbox-TTS-Server) (git submodule)
-- **Web UI**: http://localhost:8880
+- **Image**: [travisvn/openai-edge-tts](https://github.com/travisvn/openai-edge-tts)
 - **API Docs**: http://localhost:8880/docs
 
 **Features**:
-- Zero-shot voice cloning from 5 seconds of audio
-- Emotion exaggeration control
-- OpenAI-compatible API endpoint
-- Native ROCm support (PyTorch 2.6.0 + ROCm 6.4.1)
-- Audiobook-scale text processing with intelligent chunking
-- MIT licensed
+- Free, high-quality text-to-speech using Microsoft Edge's TTS service
+- OpenAI-compatible API endpoint (`/v1/audio/speech`)
+- 300+ voices in 40+ languages
+- No API key required
+- Multiple output formats: mp3, opus, aac, flac, wav, pcm
+- Lightweight - no GPU required
 
-**Upstream**: The Chatterbox model is by [Resemble AI](https://www.resemble.ai/chatterbox/) - in blind tests, 63% of listeners preferred it over ElevenLabs.
-
-**Data paths**:
-- Voices: `./stacks/chatterbox/data/voices/`
-- Reference audio: `./stacks/chatterbox/data/reference_audio/`
-- Outputs: `./stacks/chatterbox/data/outputs/`
-
-**Podcast workflow**: Agent creates script → script diarized by two hosts → TTS generates audio per speaker → concatenated → episode output.
+**Default voice**: en-US-AvaNeural (can be changed via environment variable)
 
 ### Image Generation: ComfyUI
 
@@ -165,7 +157,7 @@ Or via Docker Compose (included in main compose file)
 ### Other Potential Additions
 
 - **Open WebUI**: Chat interface for Ollama
-- **Alternative TTS**: Dia, Kokoro, or Tortoise-TTS if Chatterbox doesn't meet needs
+- **Voice Cloning TTS**: Chatterbox, Dia, Kokoro, or Tortoise-TTS for voice cloning capabilities (Edge TTS doesn't support cloning)
 - **Automatic1111**: Alternative to ComfyUI for image generation
 - **RVC**: Real-time voice conversion
 

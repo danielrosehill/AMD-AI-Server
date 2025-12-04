@@ -66,9 +66,9 @@ STACK_CONFIG = {
         "name": "Text-to-Speech",
         "icon": "volume-2",
         "services": {
-            "chatterbox": {
-                "container": "chatterbox-tts",
-                "display": "Chatterbox",
+            "edge-tts": {
+                "container": "edge-tts",
+                "display": "Edge TTS",
                 "port": 8880,
                 "url": "http://localhost:8880",
                 "api_docs": "http://localhost:8880/docs",
@@ -100,16 +100,15 @@ SERVICE_APIS = {
             {"method": "GET", "path": "/health", "description": "Health check"},
         ],
     },
-    "chatterbox": {
-        "name": "Chatterbox TTS",
+    "edge-tts": {
+        "name": "Edge TTS",
         "base_url": "http://localhost:8880",
         "docs_url": "http://localhost:8880/docs",
         "endpoints": [
             {"method": "POST", "path": "/v1/audio/speech", "description": "OpenAI-compatible TTS"},
-            {"method": "POST", "path": "/tts", "description": "Generate speech from text"},
-            {"method": "GET", "path": "/get_predefined_voices", "description": "List predefined voices"},
-            {"method": "GET", "path": "/get_reference_files", "description": "List reference audio files"},
-            {"method": "POST", "path": "/upload_reference", "description": "Upload reference audio for cloning"},
+            {"method": "GET", "path": "/v1/voices", "description": "List available voices"},
+            {"method": "GET", "path": "/v1/models", "description": "List available models"},
+            {"method": "GET", "path": "/health", "description": "Health check"},
         ],
     },
     "comfyui": {
