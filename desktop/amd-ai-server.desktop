@@ -2,10 +2,10 @@
 Version=1.0
 Type=Application
 Name=AMD AI Server
-Comment=Control panel for AMD ROCm-based AI services
-Exec=xdg-open http://localhost:8090
+Comment=Start AMD ROCm-based AI services and open control panel
+Exec=/home/daniel/repos/github/AMD-AI-Server/scripts/launcher.sh
 Icon=applications-science
 Terminal=false
 Categories=Development;Science;ArtificialIntelligence;
-Keywords=AI;LLM;Ollama;Whisper;ComfyUI;ROCm;AMD;
-StartupNotify=false
+Keywords=AI;LLM;Ollama;Whisper;ComfyUI;ROCm;AMD;TTS;
+StartupNotify=true
