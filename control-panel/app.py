@@ -288,12 +288,43 @@ async def run_docker_compose(action: str, service: Optional[str] = None) -> dict
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    """Render the main control panel."""
+    """Render the main control panel with Services, API, and MCP tabs."""
+    import json
+
     services = get_all_services_status()
     gpu = get_gpu_info()
+
+    # Generate MCP config snippets
+    claude_desktop_config = {
+        "mcpServers": {
+            MCP_CONFIG["name"]: {
+                "command": MCP_CONFIG["command"],
+                "args": MCP_CONFIG["args"],
+                "env": MCP_CONFIG["env"],
+            }
+        }
+    }
+
+    mcpm_command = (
+        f"mcpm new {MCP_CONFIG['name']} "
+        f"--type stdio "
+        f"--command \"{MCP_CONFIG['command']}\" "
+        f"--args \"{' '.join(MCP_CONFIG['args'])}\" "
+        f"--env \"{','.join(f'{k}={v}' for k, v in MCP_CONFIG['env'].items())}\" "
+        f"--force"
+    )
+
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "stacks": services, "gpu": gpu},
+        {
+            "request": request,
+            "stacks": services,
+            "gpu": gpu,
+            "services": SERVICE_APIS,
+            "mcp_config": MCP_CONFIG,
+            "claude_desktop_json": json.dumps(claude_desktop_config, indent=2),
+            "mcpm_command": mcpm_command,
+        },
     )
 
 
@@ -402,41 +433,6 @@ async def api_services_info():
     return SERVICE_APIS
 
 
-@app.get("/about", response_class=HTMLResponse)
-async def about_page(request: Request):
-    """Render the About/Integration page."""
-    import json
-
-    # Generate MCP config snippets
-    claude_desktop_config = {
-        "mcpServers": {
-            MCP_CONFIG["name"]: {
-                "command": MCP_CONFIG["command"],
-                "args": MCP_CONFIG["args"],
-                "env": MCP_CONFIG["env"],
-            }
-        }
-    }
-
-    mcpm_command = (
-        f"mcpm new {MCP_CONFIG['name']} "
-        f"--type stdio "
-        f"--command \"{MCP_CONFIG['command']}\" "
-        f"--args \"{' '.join(MCP_CONFIG['args'])}\" "
-        f"--env \"{','.join(f'{k}={v}' for k, v in MCP_CONFIG['env'].items())}\" "
-        f"--force"
-    )
-
-    return templates.TemplateResponse(
-        "about.html",
-        {
-            "request": request,
-            "services": SERVICE_APIS,
-            "mcp_config": MCP_CONFIG,
-            "claude_desktop_json": json.dumps(claude_desktop_config, indent=2),
-            "mcpm_command": mcpm_command,
-        },
-    )
 
 
 if __name__ == "__main__":
