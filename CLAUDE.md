@@ -79,10 +79,9 @@ Prefer one setup over duplicates. If Ollama exists both on host and in Docker, c
 
 **Default voice**: en-US-AvaNeural (can be changed via environment variable)
 
-### Image Generation: ComfyUI
+### Image Generation: ComfyUI (Host Installation)
 
-- **Port**: 8188
-- Bind-mounted to existing installation with custom nodes preserved
+ComfyUI runs on the host rather than in Docker for better compatibility with custom nodes and model management. Located at `~/programs/ai-ml/ComfyUI/` with a start script at `~/programs/ai-ml/ComfyUI/run_comfyui.sh`.
 
 ## Service Exposure
 
@@ -95,7 +94,7 @@ Services are exposed via:
 
 **Current approach**: Each service exposes its own local API
 
-**Future vision**: Single unified local AI API with OpenAPI schema that proxies to all backend services. Rather than four parallel APIs (Ollama, STT, Whisper, ComfyUI), one API that routes to appropriate backends. This simplifies MCP server development - one schema to wrap instead of many.
+**Future vision**: Single unified local AI API with OpenAPI schema that proxies to all backend services. Rather than multiple parallel APIs (Ollama, STT, etc.), one API that routes to appropriate backends. This simplifies MCP server development - one schema to wrap instead of many.
 
 **Implementation path**:
 1. First ensure all services provide local APIs with definitions
@@ -158,7 +157,6 @@ Or via Docker Compose (included in main compose file)
 
 - **Open WebUI**: Chat interface for Ollama
 - **Voice Cloning TTS**: Chatterbox, Dia, Kokoro, or Tortoise-TTS for voice cloning capabilities (Edge TTS doesn't support cloning)
-- **Automatic1111**: Alternative to ComfyUI for image generation
 - **RVC**: Real-time voice conversion
 
 ## MCP Server Integration

@@ -35,35 +35,6 @@ services:
       - ai-stack
 
   # ==========================================================================
-  # MEDIA: ComfyUI (Image Generation)
-  # ==========================================================================
-  comfyui:
-    image: yanwk/comfyui-boot:rocm
-    container_name: comfyui
-    restart: unless-stopped
-    ports:
-      - "${COMFYUI_PORT:-8188}:8188"
-    environment:
-      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.0.1}
-      - ROCM_PATH=${ROCM_PATH:-/opt/rocm}
-      - HIP_VISIBLE_DEVICES=${HIP_VISIBLE_DEVICES:-0}
-      - PYTORCH_ROCM_ARCH=${PYTORCH_ROCM_ARCH:-gfx1101}
-      - CLI_ARGS=--listen 0.0.0.0 --port 8188
-    volumes:
-      - ${COMFYUI_PATH:-./comfyui-data}:/root
-    devices:
-      - /dev/kfd
-      - /dev/dri
-    group_add:
-      - "44"   # video
-      - "992"  # render
-    security_opt:
-      - seccomp:unconfined
-    ipc: host
-    networks:
-      - ai-stack
-
-  # ==========================================================================
   # STT: Whisper Speech-to-Text (Pre-built)
   # ==========================================================================
   whisper:
